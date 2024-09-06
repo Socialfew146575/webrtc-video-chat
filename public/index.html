@@ -1,306 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <title>Video Calling</title>
-  </head>
-  <body>
-    <div class="container">
-      <header class="header">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <title>Video Calling</title>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 100 100"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <!-- Rounded pentagon shape -->
+        <path
+          d="M50,5 Q 80,25 95,50 Q 80,75 50,95 Q 20,75 5,50 Q 20,25 50,5"
+          fill="#68B182"
+        />
+        <!-- Larger minus sign -->
+        <text
+          x="50"
+          y="58"
+          font-family="Arial"
+          font-size="60"
+          fill="#FFFFFF"
+          text-anchor="middle"
         >
-          <!-- Rounded pentagon shape -->
-          <path
-            d="M50,5 Q 80,25 95,50 Q 80,75 50,95 Q 20,75 5,50 Q 20,25 50,5"
-            fill="#68B182"
-          />
-          <!-- Larger minus sign -->
-          <text
-            x="50"
-            y="58"
-            font-family="Arial"
-            font-size="60"
-            fill="#FFFFFF"
-            text-anchor="middle"
-          >
-            -
-          </text>
-        </svg>
-        <h1 class="brand">Web<span>One</span></h1>
-      </header>
-      <div class="main-container">
-        <div class="users-section">
-          <div id="user">
-            <h4>Your Id:</h4>
-            <span id="user-id"></span>
-          </div>
-          <div class="online-users">
-            <p>Online Users (Click to Connect):</p>
-            <div class="users"></div>
-          </div>
+          -
+        </text>
+      </svg>
+      <h1 class="brand">Web<span>One</span></h1>
+    </header>
+    <div class="main-container">
+      <div class="users-section">
+        <div id="user">
+          <h4>Your Id:</h4>
+          <span id="user-id"></span>
         </div>
-        <div class="video-section">
-          <video
-            src=""
-            id="recipient-video"
-            class="recipient-video"
-            autoplay
-          ></video>
-          <video
-            src=""
-            id="caller-video"
-            class="caller-video"
-            autoplay
-            muted
-          ></video>
+        <div class="online-users">
+          <p>Online Users (Click to Connect):</p>
+          <div class="users"></div>
         </div>
       </div>
+      <div class="video-section">
+        <video
+          id="recipient-video"
+          class="recipient-video"
+          autoplay
+        ></video>
+        <video
+          id="caller-video"
+          class="caller-video"
+          autoplay
+          muted
+        ></video>
+        <audio
+          id="recipient-audio"
+          autoplay
+        ></audio>
+      </div>
     </div>
-    <!-- Import socket.io script -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io();
-      let myId;
-      let active = false;
-      let activeCall;
-      const peer = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.stunprotocol.org" }],
-      });
+  </div>
+  <!-- Import socket.io script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let myId;
+    let active = false;
+    let activeCall;
+    const peer = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.stunprotocol.org" }],
+    });
 
-      peer.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("ice-candidate", {
-            candidate: event.candidate,
-            to: activeCall,
-          });
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          candidate: event.candidate,
+          to: activeCall,
+        });
+      }
+    };
+
+    peer.onnegotiationneeded = async () => {
+      try {
+        console.log("Negotiation needed - creating offer");
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        socket.emit("outgoing:call", { offer, to: activeCall });
+      } catch (err) {
+        console.error("Error creating offer:", err);
+      }
+    };
+
+    peer.addEventListener("track", (event) => {
+      console.log("Track received:", event.track);
+      if (event.track.kind === "video") {
+        const recipientVideo = document.getElementById("recipient-video");
+        recipientVideo.srcObject = event.streams[0];
+      } else if (event.track.kind === "audio") {
+        let audioElement = document.getElementById("recipient-audio");
+        if (!audioElement) {
+          audioElement = document.createElement("audio");
+          audioElement.id = "recipient-audio";
+          audioElement.autoplay = true;
+          document.querySelector(".video-section").appendChild(audioElement);
         }
-      };
+        audioElement.srcObject = event.streams[0];
+      }
+    });
 
-      peer.onnegotiationneeded = async () => {
-        try {
-          console.log("Negotiation needed - creating offer");
-          const offer = await peer.createOffer();
-          await peer.setLocalDescription(offer);
-          socket.emit("outgoing:call", { offer, to: activeCall });
-        } catch (err) {
-          console.error("Error creating offer:", err);
-        }
-      };
+    socket.on("hello", (data) => {
+      const userId = document.querySelector("#user-id");
+      userId.innerText = data.id;
+      myId = data.id;
+    });
 
-      peer.addEventListener("track", (event) => {
-        console.log("Track received:", event.track);
-        if (event.track.kind === "video") {
-          const recipientVideo = document.getElementById("recipient-video");
-          recipientVideo.srcObject = event.streams[0];
-        }
-      });
+    socket.on("newUser:joined", ({ id }) => {
+      const usersContainer = document.getElementsByClassName("users")[0];
+      const button = document.createElement("button");
+      const span1 = document.createElement("span");
+      const span2 = document.createElement("span");
+      const icon1 = document.createElement("i");
+      const icon2 = document.createElement("i");
+      icon1.classList.add("fas", "fa-phone-alt");
+      icon2.classList.add("fas", "fa-phone-slash");
+      span1.innerText = id;
+      span2.appendChild(icon1);
+      span2.appendChild(icon2);
+      button.appendChild(span1);
+      button.appendChild(span2);
+      if (active === false) {
+        button.onclick = () => createCall(id);
+      }
+      if (active === true) {
+        button.classList.add("hide");
+      }
+      button.id = id;
+      usersContainer.appendChild(button);
+    });
 
-      socket.on("hello", (data) => {
-        const userId = document.querySelector("#user-id");
-        userId.innerText = data.id;
-        myId = data.id;
-      });
-
-      socket.on("newUser:joined", ({ id }) => {
+    const getAndUpdateOnlineUsers = async () => {
+      try {
+        const response = await fetch("/users");
+        const data = await response.json();
+        const filteredData = data.filter((d) => d[0] !== myId);
         const usersContainer = document.getElementsByClassName("users")[0];
-        const button = document.createElement("button");
-        const span1 = document.createElement("span");
-        const span2 = document.createElement("span");
-        const icon1 = document.createElement("i");
-        const icon2 = document.createElement("i");
-        icon1.classList.add("fas", "fa-phone-alt");
-        icon2.classList.add("fas", "fa-phone-slash");
-        span1.innerText = id;
-        span2.appendChild(icon1);
-        span2.appendChild(icon2);
-        button.appendChild(span1);
-        button.appendChild(span2);
-        if (active === false) {
-          button.onclick = () => createCall(id);
-        }
-        if (active === true) {
-          button.classList.add("hide");
-        }
-        button.id = id;
-        usersContainer.appendChild(button);
-      });
-
-      const getAndUpdateOnlineUsers = async () => {
-        try {
-          const response = await fetch("/users");
-          const data = await response.json();
-          const filteredData = data.filter((d) => d[0] !== myId);
-          const usersContainer = document.getElementsByClassName("users")[0];
-          usersContainer.innerHTML = "";
-          filteredData.forEach((d) => {
-            const button = document.createElement("button");
-            const span1 = document.createElement("span");
-            const span2 = document.createElement("span");
-            const icon1 = document.createElement("i");
-            const icon2 = document.createElement("i");
-            icon1.classList.add("fas", "fa-phone-alt");
-            icon2.classList.add("fas", "fa-phone-slash");
-            span1.innerText = d[0];
-            span2.appendChild(icon1);
-            span2.appendChild(icon2);
-            button.appendChild(span1);
-            button.appendChild(span2);
-            if (active === true) {
-              button.classList.add("hide");
-            }
-            if (active === false) {
-              button.onclick = () => createCall(d[0]);
-            }
-            button.id = d[0];
-            usersContainer.appendChild(button);
-          });
-        } catch (error) {
-          console.error("Error fetching and updating online users:", error);
-        }
-      };
-
-      const createCall = async (id) => {
-        console.log("Outgoing call to:", id);
-        activeCall = id;
-        const localOffer = await peer.createOffer();
-        await peer.setLocalDescription(new RTCSessionDescription(localOffer));
-        active = true;
-        socket.emit("outgoing:call", { offer: localOffer, to: id });
-        const activeButton = document.getElementById(id);
-        activeButton.classList.add("active");
-        const usersContainer = document.getElementsByClassName("users")[0];
-        const inactiveButtons = Array.from(
-          usersContainer.querySelectorAll("button")
-        );
-        inactiveButtons.forEach((b) => {
-          if (b.id !== id) {
-            b.classList.add("hide");
-            b.onclick = null;
-          } else {
-            const endCallBtn = b.getElementsByClassName("fa-phone-slash")[0];
-
-            endCallBtn.onclick = () => endCall(id);
+        usersContainer.innerHTML = "";
+        filteredData.forEach((d) => {
+          const button = document.createElement("button");
+          const span1 = document.createElement("span");
+          const span2 = document.createElement("span");
+          const icon1 = document.createElement("i");
+          const icon2 = document.createElement("i");
+          icon1.classList.add("fas", "fa-phone-alt");
+          icon2.classList.add("fas", "fa-phone-slash");
+          span1.innerText = d[0];
+          span2.appendChild(icon1);
+          span2.appendChild(icon2);
+          button.appendChild(span1);
+          button.appendChild(span2);
+          if (active === true) {
+            button.classList.add("hide");
           }
-        });
-      };
-
-      socket.on("call:ended", ({ from }) => {
-          window.location.reload()
-      });
-
-      const endCall = async (id) => {
-        console.log("endCall");
-        socket.emit("endCall", {
-          to: id,
-        });
-
-        window.location.reload()
-      };
-
-      socket.on("incoming:call", async ({ offer, from }) => {
-        console.log("Incoming call from:", from);
-        const usersContainer = document.getElementsByClassName("users")[0];
-        const buttons = usersContainer.querySelectorAll("button");
-        buttons.forEach((b) => {
-          if (b.id === from) {
-            b.classList.remove("active");
-            b.classList.remove("hide");
-            b.classList.add("incomingCall");
-            b.onclick = null;
-            const acceptCallBtn = b.getElementsByClassName("fa-phone-alt")[0];
-            acceptCallBtn.onclick = () => acceptCall(from, offer);
-            const endCallBtn = b.getElementsByClassName("fa-phone-slash")[0];
-            endCallBtn.onclick = () => endCall(from);
-          } else {
-            b.classList.add("hide");
+          if (active === false) {
+            button.onclick = () => createCall(d[0]);
           }
+          button.id = d[0];
+          usersContainer.appendChild(button);
         });
-      });
+      } catch (error) {
+        console.error("Error fetching and updating online users:", error);
+      }
+    };
 
-      // socket.on("incoming:offer", async ({ offer, from }) => {
-      //   console.log("Incoming offer from:", from);
-      //   const usersContainer = document.getElementsByClassName("users")[0];
-      //   const buttons = usersContainer.querySelectorAll("button");
-      //   buttons.forEach((b) => {
-      //     if (b.id === from) {
-      //       b.classList.remove("active");
-      //       b.classList.remove("hide");
-      //       b.classList.add("incomingCall");
-      //       b.onclick = null;
-      //       const acceptCallBtn = b.getElementsByClassName("fa-phone-alt")[0];
-      //       acceptCallBtn.onclick = () => acceptCall(from, offer);
-      //     } else {
-      //       b.classList.add("hide");
-      //     }
-      //   });
-      // });
-
-      socket.on("incoming:answer", async ({ offer, from }) => {
-        console.log("Incoming answer from:", from);
-        await peer.setRemoteDescription(new RTCSessionDescription(offer));
-      });
-
-      const acceptCall = async (from, offer) => {
-        console.log("Accepting call from:", from);
-        await peer.setRemoteDescription(new RTCSessionDescription(offer));
-        const answerOffer = await peer.createAnswer();
-        await peer.setLocalDescription(new RTCSessionDescription(answerOffer));
-        const callFrom = document.getElementById(from);
-        callFrom.classList.remove("incomingCall");
-        callFrom.classList.add("active");
-        callFrom.onclick = null
-        socket.emit("call:accepted", { offer: answerOffer, to: from });
-        try {
-          const myStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-          });
-          const localVideoContainer = document.getElementById("caller-video");
-          localVideoContainer.srcObject = myStream;
-          localVideoContainer.play();
-          myStream.getTracks().forEach((track) => {
-            peer.addTrack(track, myStream);
-          });
-        } catch (error) {
-          console.error("Error accessing user media:", error);
+    const createCall = async (id) => {
+      console.log("Outgoing call to:", id);
+      activeCall = id;
+      const localOffer = await peer.createOffer();
+      await peer.setLocalDescription(new RTCSessionDescription(localOffer));
+      active = true;
+      socket.emit("outgoing:call", { offer: localOffer, to: id });
+      const activeButton = document.getElementById(id);
+      activeButton.classList.add("active");
+      const usersContainer = document.getElementsByClassName("users")[0];
+      const inactiveButtons = Array.from(usersContainer.querySelectorAll("button"));
+      inactiveButtons.forEach((b) => {
+        if (b.id !== id) {
+          b.classList.add("hide");
+          b.onclick = null;
+        } else {
+          const endCallBtn = b.getElementsByClassName("fa-phone-slash")[0];
+          endCallBtn.onclick = () => endCall(id);
         }
-      };
-
-      const getUserMedia = async () => {
-        try {
-          const userMedia = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio : true
-          });
-          const localVideoContainer = document.getElementById("caller-video");
-          localVideoContainer.srcObject = userMedia;
-          localVideoContainer.play();
-          userMedia.getTracks().forEach((track) => {
-            peer.addTrack(track, userMedia);
-          });
-        } catch (error) {
-          console.error("Error accessing user media:", error);
-        }
-      };
-
-      window.addEventListener("load", getAndUpdateOnlineUsers);
-      window.addEventListener("load", getUserMedia);
-
-      socket.on("user:disconnected", ({ id }) => {
-        document.getElementById(id).remove();
       });
-    </script>
-  </body>
+    };
+
+    socket.on("call:ended", ({ from }) => {
+      window.location.reload();
+    });
+
+    const endCall = async (id) => {
+      console.log("End call");
+      socket.emit("endCall", { to: id });
+      window.location.reload();
+    };
+
+    socket.on("incoming:call", async ({ offer, from }) => {
+      console.log("Incoming call from:", from);
+      const usersContainer = document.getElementsByClassName("users")[0];
+      const buttons = usersContainer.querySelectorAll("button");
+      buttons.forEach((b) => {
+        if (b.id === from) {
+          b.classList.remove("active");
+          b.classList.remove("hide");
+          b.classList.add("incomingCall");
+          b.onclick = null;
+          const acceptCallBtn = b.getElementsByClassName("fa-phone-alt")[0];
+          acceptCallBtn.onclick = () => acceptCall(from, offer);
+          const endCallBtn = b.getElementsByClassName("fa-phone-slash")[0];
+          endCallBtn.onclick = () => endCall(from);
+        } else {
+          b.classList.add("hide");
+        }
+      });
+    });
+
+    socket.on("incoming:answer", async ({ offer, from }) => {
+      console.log("Incoming answer from:", from);
+      await peer.setRemoteDescription(new RTCSessionDescription(offer));
+    });
+
+    const acceptCall = async (from, offer) => {
+      console.log("Accepting call from:", from);
+      await peer.setRemoteDescription(new RTCSessionDescription(offer));
+      const answerOffer = await peer.createAnswer();
+      await peer.setLocalDescription(new RTCSessionDescription(answerOffer));
+      const callFrom = document.getElementById(from);
+      callFrom.classList.remove("incomingCall");
+      callFrom.classList.add("active");
+      callFrom.onclick = null;
+      socket.emit("call:accepted", { offer: answerOffer, to: from });
+      try {
+        const myStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        const localVideoContainer = document.getElementById("caller-video");
+        localVideoContainer.srcObject = myStream;
+        localVideoContainer.play();
+        myStream.getTracks().forEach((track) => {
+          peer.addTrack(track, myStream);
+        });
+      } catch (error) {
+        console.error("Error accessing user media:", error);
+      }
+    };
+
+    const getUserMedia = async () => {
+      try {
+        const userMedia = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        const localVideoContainer = document.getElementById("caller-video");
+        localVideoContainer.srcObject = userMedia;
+        localVideoContainer.play();
+        userMedia.getTracks().forEach((track) => {
+          peer.addTrack(track, userMedia);
+        });
+      } catch (error) {
+        console.error("Error accessing user media:", error);
+      }
+    };
+
+    window.addEventListener("load", () => {
+      getAndUpdateOnlineUsers();
+      getUserMedia();
+    });
+
+    socket.on("user:disconnected", ({ id }) => {
+      const userButton = document.getElementById(id);
+      if (userButton) {
+        userButton.remove();
+      }
+    });
+  </script>
+</body>
 </html>
