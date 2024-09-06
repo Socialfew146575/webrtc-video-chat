@@ -1,0 +1,184 @@
+body {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+
+  background-color: #1f1f1f;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.header {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand {
+  color: white;
+}
+
+.brand span {
+  color: #68b182;
+}
+
+.main-container {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  margin-bottom: 36px;
+}
+
+.users-section {
+  flex: 1;
+  background-color: #575c53;
+  border-radius: 10px;
+  padding: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#user h4 {
+  border: 2px solid white;
+  width: fit-content;
+  padding: 8px 12px;
+  background-color: white;
+  border-radius: 8px;
+}
+
+#user-id  {
+  background-color: #797d75;
+  width: fit-content;
+  padding: 8px 12px;
+  color: white;
+  border-radius: 8px;
+}
+
+.online-users {
+  background-color: #302f2f;
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.online-users p {
+  width: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: gray;
+  margin: 4px 12px;
+  margin-bottom: 16px;
+}
+
+.users  {
+
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+ 
+}
+
+.users button{
+
+     background-color: white;
+  border: none;
+  color: #68b182;
+  padding: 8px 16px;
+
+  overflow-y: auto;
+  margin: 4px 12px;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 8px;
+}
+
+.video-section {
+  flex: 2;
+  border: 1px solid #68b182;
+  border-radius: 8px;
+  padding: 1px;
+  position: relative;
+  object-fit:contain;
+}
+
+.recipient-video {
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+}
+
+
+
+
+
+.fa-phone-slash{
+    color:#F22C3D;
+    opacity:0;
+}
+
+.fa-phone-alt{
+  opacity:1;
+}
+
+.active .fa-phone-slash{
+
+  opacity:1 !important;
+
+}
+
+.active .fa-phone-alt{
+
+  opacity:0 !important;
+
+}
+
+.hide .fa-phone-alt{
+  opacity:0 !important
+}
+
+.hide .fa-phone-slash{
+  opacity:0 !important
+}
+
+.incomingCall  .fa-phone-slash{
+  opacity:1 !important;
+}
+.incomingCall  .fa-phone-alt{
+  opacity:1 !important;
+}
+
+
+
+.caller-video {
+  position: absolute;
+  height: fit-content;
+  width: 180px;
+  top: 10px;
+  right: 10px;
+  border: 2px solid white;
+  border-radius: 12px;
+  z-index: 10;
+
+}
+
