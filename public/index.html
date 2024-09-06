@@ -265,6 +265,7 @@
         try {
           const myStream = await navigator.mediaDevices.getUserMedia({
             video: true,
+            audio: true
           });
           const localVideoContainer = document.getElementById("caller-video");
           localVideoContainer.srcObject = myStream;
@@ -281,6 +282,7 @@
         try {
           const userMedia = await navigator.mediaDevices.getUserMedia({
             video: true,
+            audio : true
           });
           const localVideoContainer = document.getElementById("caller-video");
           localVideoContainer.srcObject = userMedia;
