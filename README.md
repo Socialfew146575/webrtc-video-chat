@@ -18,5 +18,6 @@ This project is a WebRTC-based video calling application that enables real-time 
 - **Node.js**: For core logic and WebRTC API handling
 
 ![image](https://github.com/user-attachments/assets/e73676b0-06c9-4a6c-a61b-bb4afd65183f)
-![image](https://github.com/user-attachments/assets/be6f847b-cb56-47a9-9d65-6b3984cc01e4)
+![image](https://github.com/user-attachments/assets/f87d2d70-3dd0-4a65-baf8-4b8fcf89332d)
+
 
